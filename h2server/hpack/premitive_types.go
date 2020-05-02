@@ -1,17 +1,11 @@
 package hpack
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"math/bits"
 
 	"github.com/murakmii/exp-h2server/h2server/hpack/huffman"
-)
-
-var (
-	ErrPrefixedInt   = errors.New("invalid prefixed int")
-	ErrStringLiteral = errors.New("invalid string literal")
 )
 
 // decodePrefixedInt decodes integer representation with prefix
@@ -97,9 +91,23 @@ func decodeStringLiteral(r io.Reader, maxLength int) ([]byte, error) {
 	if (encodedFlag >> 7) == 1 {
 		str, err = huffman.Decode(str)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%w: %s", ErrHPACK, err.Error())
 		}
 	}
 
 	return str, nil
+}
+
+// encodeStringLiteral encodes string to string literal
+func encodeStringLiteral(str []byte, encodeHuffman bool) []byte {
+	if encodeHuffman {
+		str = huffman.Encode(str)
+	}
+
+	encoded := encodePrefixedInt(7, uint64(len(str)))
+	if encodeHuffman {
+		encoded[0] |= 1 << 7
+	}
+
+	return encoded
 }

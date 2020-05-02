@@ -1,7 +1,6 @@
 package hpack
 
 import (
-	"errors"
 	"io"
 )
 
@@ -13,8 +12,6 @@ type peekReader struct {
 
 var (
 	_ io.Reader = (*peekReader)(nil)
-
-	ErrTableEntryNotFound = errors.New("specified table entry not found")
 )
 
 func DecodeHeaderBlock(table *IndexTable, r *io.LimitedReader) (HeaderList, error) {
@@ -36,7 +33,10 @@ func DecodeHeaderBlock(table *IndexTable, r *io.LimitedReader) (HeaderList, erro
 			hf, err = decodeLiteralHeaderField(table, pkr, 6, true)
 
 		case peeked >= 32: // Dynamic Table Size Update
-			// TODO: update dynamic table size
+			_, newDataSize, err := decodePrefixedInt(pkr, 5)
+			if err == nil {
+				err = table.UpdateMaxDataSize(int(newDataSize))
+			}
 
 		default: // Literal Header Field without Indexing, Literal Header Field Never Indexed
 			hf, err = decodeLiteralHeaderField(table, pkr, 4, false)

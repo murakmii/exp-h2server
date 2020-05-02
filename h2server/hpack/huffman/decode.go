@@ -18,7 +18,7 @@ var (
 	codeTreeRoot      *codeTreeNode
 	buildCodeTreeOnce sync.Once
 
-	ErrInvalid = errors.New("invalid huffman encoded data")
+	Err = errors.New("invalid huffman encoded data")
 )
 
 // Decode decodes Huffman encoded data that is compliant with HPACK specification.
@@ -33,7 +33,7 @@ func Decode(encoded []byte) ([]byte, error) {
 			bit := (b >> i) & 1
 			node = node.children[bit]
 			if node == nil {
-				return nil, ErrInvalid
+				return nil, Err
 			}
 
 			if node.match {
@@ -50,7 +50,7 @@ func Decode(encoded []byte) ([]byte, error) {
 	padding := checkingBits.Bytes()
 	for i, p := range padding {
 		if i >= 7 || p != 1 {
-			return nil, ErrInvalid
+			return nil, Err
 		}
 	}
 

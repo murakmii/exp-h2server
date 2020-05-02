@@ -1,7 +1,6 @@
 package hpack
 
 import (
-	"errors"
 	"fmt"
 )
 
@@ -14,10 +13,6 @@ type (
 		currentDataSize     int
 		dynamicTable        []*HeaderField
 	}
-)
-
-var (
-	ErrDataSize = errors.New("invalid data size operation")
 )
 
 func NewIndexTable(maxProtocolDataSize int) *IndexTable {
