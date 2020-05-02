@@ -1,33 +1,40 @@
 package hpack
 
-type (
-	// DynamicTable is representation of "Dynamic Table"
-	// See: https://tools.ietf.org/html/rfc7541#section-2.3.2
-	DynamicTable struct {
-		entries       []*HeaderField
-		maxDataSize   int
-		totalDataSize int
-	}
+import (
+	"errors"
+	"fmt"
+)
 
-	// IndexAddressSpace is representation of "Index Address Space"
-	// See: https://tools.ietf.org/html/rfc7541#section-2.3.3
-	IndexAddressSpace struct {
-		dynamic *DynamicTable
+type (
+	// IndexTable is representation of "Index Table"
+	// See: https://tools.ietf.org/html/rfc7541#section-2.3
+	IndexTable struct {
+		maxProtocolDataSize int
+		maxDataSize         int
+		currentDataSize     int
+		dynamicTable        []*HeaderField
 	}
 )
 
-func NewIndexAddressSpace(maxDynTableSize int) *IndexAddressSpace {
-	return &IndexAddressSpace{
-		dynamic: &DynamicTable{
-			entries:       []*HeaderField{},
-			maxDataSize:   maxDynTableSize,
-			totalDataSize: 0,
-		},
+var (
+	ErrDataSize = errors.New("invalid data size operation")
+)
+
+func NewIndexTable(maxProtocolDataSize int) *IndexTable {
+	return &IndexTable{
+		maxProtocolDataSize: maxProtocolDataSize,
+		maxDataSize:         maxProtocolDataSize,
+		currentDataSize:     0,
+		dynamicTable:        make([]*HeaderField, 0),
 	}
 }
 
-func (ias *IndexAddressSpace) Entry(index int) *HeaderField {
-	if index < 1 || index > ias.IndexSize() {
+func (table *IndexTable) EntriesCount() int {
+	return len(staticTable) + len(table.dynamicTable)
+}
+
+func (table *IndexTable) Entry(index int) *HeaderField {
+	if index < 1 || index > table.EntriesCount() {
 		return nil
 	}
 
@@ -35,56 +42,51 @@ func (ias *IndexAddressSpace) Entry(index int) *HeaderField {
 		return staticTable[index-1]
 	}
 
-	return ias.dynamic.entry(index - len(staticTable))
+	return table.dynamicTable[len(table.dynamicTable)-(index-len(staticTable))]
 }
 
-func (ias *IndexAddressSpace) IndexSize() int {
-	return len(staticTable) + ias.dynamic.entrySize()
+func (table *IndexTable) AddEntry(hf *HeaderField) {
+	table.dynamicTable = append(table.dynamicTable, hf)
+	table.currentDataSize += hf.DataSize()
+	table.evictEntries()
 }
 
-func (ias *IndexAddressSpace) Dynamic() *DynamicTable {
-	return ias.dynamic
+func (table *IndexTable) MaxProtocolDataSize() int {
+	return table.maxProtocolDataSize
 }
 
-func (dyn *DynamicTable) AddEntry(entry *HeaderField) {
-	dyn.totalDataSize += entry.DataSize()
-	dyn.entries = append(dyn.entries, entry)
-	dyn.trimEntries()
+func (table *IndexTable) UpdateMaxProtocolDataSize(n int) {
+	table.maxProtocolDataSize = n
+	if table.maxDataSize > n {
+		table.maxDataSize = n
+	}
+	table.evictEntries()
 }
 
-func (dyn *DynamicTable) MaxDataSize() int {
-	return dyn.maxDataSize
+func (table *IndexTable) MaxDataSize() int {
+	return table.maxDataSize
 }
 
-func (dyn *DynamicTable) UpdateMaxDataSize(maxDataSize int) {
-	dyn.maxDataSize = maxDataSize
-	dyn.trimEntries()
-}
-
-func (dyn *DynamicTable) entry(index int) *HeaderField {
-	if index < 1 || index > dyn.entrySize() {
-		return nil
+func (table *IndexTable) UpdateMaxDataSize(n int) error {
+	if n > table.maxProtocolDataSize {
+		return fmt.Errorf("%w: new max data size(%d) is over protocol limitation(%d)", ErrDataSize, n, table.maxProtocolDataSize)
 	}
 
-	return dyn.entries[dyn.entrySize()-index]
+	table.maxDataSize = n
+	table.evictEntries()
+	return nil
 }
 
-func (dyn *DynamicTable) entrySize() int {
-	return len(dyn.entries)
-}
-
-func (dyn *DynamicTable) trimEntries() {
-	if dyn.totalDataSize <= dyn.maxDataSize {
-		return
+// See: https://tools.ietf.org/html/rfc7541#section-4.3
+//      https://tools.ietf.org/html/rfc7541#section-4.4
+func (table *IndexTable) evictEntries() {
+	evictUntil := 0
+	for ; table.currentDataSize > table.maxDataSize; evictUntil++ {
+		table.currentDataSize -= table.dynamicTable[evictUntil].DataSize()
 	}
 
-	total := dyn.totalDataSize
-	for i := 0; i < len(dyn.entries); i++ {
-		total -= dyn.entries[i].DataSize()
-		if total <= dyn.maxDataSize {
-			dyn.entries = dyn.entries[i+1:]
-			dyn.totalDataSize = total
-		}
+	if evictUntil > 0 {
+		table.dynamicTable = table.dynamicTable[evictUntil:]
 	}
 }
 
