@@ -25,7 +25,7 @@ func TestIndexTable_EntriesCount(t *testing.T) {
 			name: "Dynamic table has 1 entry",
 			table: func() *IndexTable {
 				table := NewIndexTable(4096)
-				table.AddEntry(&HeaderField{name: []byte("foo"), value: []byte("bar")})
+				table.AddEntry(&HeaderField{name: "foo", value: "bar"})
 				return table
 			},
 			want: staticTableLen + 1,
@@ -55,7 +55,7 @@ func TestIndexTable_Entry(t *testing.T) {
 				return NewIndexTable(4096)
 			},
 			in:   1,
-			want: &HeaderField{name: []byte(":authority"), value: nil},
+			want: &HeaderField{name: ":authority", value: ""},
 		},
 		{
 			name: "Index:61 for default index table",
@@ -63,7 +63,7 @@ func TestIndexTable_Entry(t *testing.T) {
 				return NewIndexTable(4096)
 			},
 			in:   61,
-			want: &HeaderField{name: []byte("www-authenticate"), value: nil},
+			want: &HeaderField{name: "www-authenticate", value: ""},
 		},
 		{
 			name: "Index:0 for default index table",
@@ -85,25 +85,25 @@ func TestIndexTable_Entry(t *testing.T) {
 			name: "Index:62 for index table with dynamic table contains 3 entries",
 			table: func() *IndexTable {
 				table := NewIndexTable(4096)
-				table.AddEntry(&HeaderField{name: []byte("foo"), value: []byte("bar")})
-				table.AddEntry(&HeaderField{name: []byte("x-forwarded-for"), value: []byte("192.168.0.1")})
-				table.AddEntry(&HeaderField{name: []byte("x-frame-options"), value: []byte("deny")})
+				table.AddEntry(&HeaderField{name: "foo", value: "bar"})
+				table.AddEntry(&HeaderField{name: "x-forwarded-for", value: "192.168.0.1"})
+				table.AddEntry(&HeaderField{name: "x-frame-options", value: "deny"})
 				return table
 			},
 			in:   62,
-			want: &HeaderField{name: []byte("x-frame-options"), value: []byte("deny")},
+			want: &HeaderField{name: "x-frame-options", value: "deny"},
 		},
 		{
 			name: "Index:64 for index table with dynamic table contains 3 entries",
 			table: func() *IndexTable {
 				table := NewIndexTable(4096)
-				table.AddEntry(&HeaderField{name: []byte("foo"), value: []byte("bar")})
-				table.AddEntry(&HeaderField{name: []byte("x-forwarded-for"), value: []byte("192.168.0.1")})
-				table.AddEntry(&HeaderField{name: []byte("x-frame-options"), value: []byte("deny")})
+				table.AddEntry(&HeaderField{name: "foo", value: "bar"})
+				table.AddEntry(&HeaderField{name: "x-forwarded-for", value: "192.168.0.1"})
+				table.AddEntry(&HeaderField{name: "x-frame-options", value: "deny"})
 				return table
 			},
 			in:   64,
-			want: &HeaderField{name: []byte("foo"), value: []byte("bar")},
+			want: &HeaderField{name: "foo", value: "bar"},
 		},
 	}
 
@@ -127,9 +127,9 @@ func TestIndexTable_AddEntry(t *testing.T) {
 			table: func() *IndexTable {
 				return NewIndexTable(100)
 			},
-			in: &HeaderField{name: []byte("foo"), value: []byte("bar")},
+			in: &HeaderField{name: "foo", value: "bar"},
 			want: []*HeaderField{
-				{name: []byte("foo"), value: []byte("bar")},
+				{name: "foo", value: "bar"},
 			},
 		},
 		{
@@ -137,14 +137,14 @@ func TestIndexTable_AddEntry(t *testing.T) {
 				table := NewIndexTable(100)
 
 				// The data size of this header field is 50 bytes(name = 9 bytes, value = 9 bytes, implicit overhead = 32 bytes)
-				table.AddEntry(&HeaderField{name: []byte("111111111"), value: []byte("111111111")})
-				table.AddEntry(&HeaderField{name: []byte("222222222"), value: []byte("222222222")})
+				table.AddEntry(&HeaderField{name: "111111111", value: "111111111"})
+				table.AddEntry(&HeaderField{name: "222222222", value: "222222222"})
 				return table
 			},
-			in: &HeaderField{name: []byte("333333333"), value: []byte("333333333")},
+			in: &HeaderField{name: "333333333", value: "333333333"},
 			want: []*HeaderField{
-				{name: []byte("333333333"), value: []byte("333333333")},
-				{name: []byte("222222222"), value: []byte("222222222")},
+				{name: "333333333", value: "333333333"},
+				{name: "222222222", value: "222222222"},
 			},
 		},
 	}
@@ -158,8 +158,8 @@ func TestIndexTable_AddEntry(t *testing.T) {
 
 func TestIndexTable_UpdateMaxProtocolDataSize(t *testing.T) {
 	table := NewIndexTable(100)
-	table.AddEntry(&HeaderField{name: []byte("111111111"), value: []byte("111111111")})
-	table.AddEntry(&HeaderField{name: []byte("222222222"), value: []byte("222222222")})
+	table.AddEntry(&HeaderField{name: "111111111", value: "111111111"})
+	table.AddEntry(&HeaderField{name: "222222222", value: "222222222"})
 
 	table.UpdateMaxProtocolDataSize(50)
 
@@ -168,7 +168,7 @@ func TestIndexTable_UpdateMaxProtocolDataSize(t *testing.T) {
 	}
 
 	testDynamicTableEntries(t, table, []*HeaderField{
-		{name: []byte("222222222"), value: []byte("222222222")},
+		{name: "222222222", value: "222222222"},
 	})
 }
 
@@ -188,14 +188,14 @@ func TestIndexTable_UpdateMaxDataSize(t *testing.T) {
 			name: "Valid max data size",
 			table: func() *IndexTable {
 				table := NewIndexTable(100)
-				table.AddEntry(&HeaderField{name: []byte("111111111"), value: []byte("111111111")})
-				table.AddEntry(&HeaderField{name: []byte("222222222"), value: []byte("222222222")})
+				table.AddEntry(&HeaderField{name: "111111111", value: "111111111"})
+				table.AddEntry(&HeaderField{name: "222222222", value: "222222222"})
 				return table
 			},
 			in: 50,
 			want: want{
 				dynamicTable: []*HeaderField{
-					{name: []byte("222222222"), value: []byte("222222222")},
+					{name: "222222222", value: "222222222"},
 				},
 				err: nil,
 			},

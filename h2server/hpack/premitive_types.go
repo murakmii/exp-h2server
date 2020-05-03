@@ -8,6 +8,8 @@ import (
 	"github.com/murakmii/exp-h2server/h2server/hpack/huffman"
 )
 
+var zeroString = ""
+
 // decodePrefixedInt decodes integer representation with prefix
 // See:https://tools.ietf.org/html/rfc7541#section-5.1
 func decodePrefixedInt(r io.Reader, n int) (byte, uint64, error) {
@@ -73,38 +75,39 @@ func encodePrefixedInt(n int, value uint64) []byte {
 
 // decodeStringLiteral decodes string literal
 // See: https://tools.ietf.org/html/rfc7541#section-5.2
-func decodeStringLiteral(r io.Reader, maxLength int) ([]byte, error) {
+func decodeStringLiteral(r io.Reader, maxLength int) (string, error) {
 	encodedFlag, length, err := decodePrefixedInt(r, 7)
 	if err != nil {
-		return nil, err
+		return zeroString, err
 	}
 
 	if length > uint64(maxLength) {
-		return nil, fmt.Errorf("%w: too long", ErrStringLiteral)
+		return zeroString, fmt.Errorf("%w: too long", ErrStringLiteral)
 	}
 
 	str := make([]byte, length)
 	if _, err := r.Read(str); err != nil {
-		return nil, err
+		return zeroString, err
 	}
 
 	if (encodedFlag >> 7) == 1 {
 		str, err = huffman.Decode(str)
 		if err != nil {
-			return nil, fmt.Errorf("%w: %s", ErrHPACK, err.Error())
+			return zeroString, fmt.Errorf("%w: %s", ErrHPACK, err.Error())
 		}
 	}
 
-	return str, nil
+	return string(str), nil
 }
 
 // encodeStringLiteral encodes string to string literal
-func encodeStringLiteral(str []byte, encodeHuffman bool) []byte {
+func encodeStringLiteral(str string, encodeHuffman bool) []byte {
+	b := []byte(str)
 	if encodeHuffman {
-		str = huffman.Encode(str)
+		b = huffman.Encode(b)
 	}
 
-	encoded := encodePrefixedInt(7, uint64(len(str)))
+	encoded := encodePrefixedInt(7, uint64(len(b)))
 	if encodeHuffman {
 		encoded[0] |= 1 << 7
 	}

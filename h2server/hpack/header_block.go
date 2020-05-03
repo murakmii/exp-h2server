@@ -73,7 +73,7 @@ func decodeLiteralHeaderField(table *IndexTable, r io.Reader, prefixedIntN int, 
 		return nil, err
 	}
 
-	var name []byte
+	var name string
 	if nameIndex > 0 {
 		indexed := table.Entry(int(nameIndex))
 		if indexed == nil {

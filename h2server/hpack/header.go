@@ -4,8 +4,8 @@ type (
 	HeaderList []*HeaderField
 
 	HeaderField struct {
-		name  []byte
-		value []byte
+		name  string
+		value string
 	}
 )
 
@@ -14,11 +14,11 @@ const (
 	headerFieldManagingOverheadBytes = 32
 )
 
-func (hf *HeaderField) Name() []byte {
+func (hf *HeaderField) Name() string {
 	return hf.name
 }
 
-func (hf *HeaderField) Value() []byte {
+func (hf *HeaderField) Value() string {
 	return hf.value
 }
 
