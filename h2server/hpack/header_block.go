@@ -50,6 +50,10 @@ func DecodeHeaderBlock(table *IndexTable, r *io.LimitedReader) (HeaderList, erro
 		}
 	}
 
+	if err := headerList.Validate(); err != nil {
+		return nil, err
+	}
+
 	return headerList, nil
 }
 

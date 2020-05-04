@@ -14,4 +14,6 @@ var (
 
 	ErrPrefixedInt   = fmt.Errorf("%w: prefixed int", ErrHPACK)
 	ErrStringLiteral = fmt.Errorf("%w: string literal", ErrHPACK)
+
+	ErrHeader = fmt.Errorf("%w: header", ErrHPACK)
 )

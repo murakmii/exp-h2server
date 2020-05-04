@@ -112,5 +112,5 @@ func encodeStringLiteral(str string, encodeHuffman bool) []byte {
 		encoded[0] |= 1 << 7
 	}
 
-	return encoded
+	return append(encoded, b...)
 }
