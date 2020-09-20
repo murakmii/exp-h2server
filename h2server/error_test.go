@@ -32,3 +32,16 @@ func TestUnwrapErrorCode(t *testing.T) {
 		}
 	}
 }
+
+func TestNewUnknownFrameError(t *testing.T) {
+	err := NewUnknownFrameError(0xFF)
+	expectMsg := "unknown frame type: 0xFF"
+
+	if err.Error() != expectMsg {
+		t.Errorf("NewUnknownFrameError() got %s, want = %s", err.Error(), expectMsg)
+	}
+
+	if !errors.Is(err, UnknownFrameErr) {
+		t.Errorf("NewUnknownFrameError() return error is NOT UnknownFrameErr")
+	}
+}

@@ -11,11 +11,14 @@ type (
 		wrapped error
 	}
 
-	ErrorCode uint8
+	ErrorCode uint32
 )
 
 var (
 	_ error = (*H2Error)(nil)
+
+	UnknownFrameErr     = errors.New("unknown frame type")
+	ACKSettingsFrameErr = NewH2Error(FrameSizeError, "ack settings frame's payload length must be 0")
 )
 
 const (
@@ -47,12 +50,21 @@ func NewH2Error(code ErrorCode, format string, args ...interface{}) error {
 }
 
 func UnwrapErrorCode(err error) ErrorCode {
+	if err == nil {
+		return NoError
+	}
+
 	if h2Error, ok := err.(*H2Error); ok {
 		return h2Error.code
 	}
 
 	if wrapErr, ok := err.(interface{ Unwrap() error }); ok {
-		return UnwrapErrorCode(wrapErr.Unwrap())
+		err = wrapErr.Unwrap()
+		if err == nil {
+			return InternalError
+		}
+
+		return UnwrapErrorCode(err)
 	}
 
 	return InternalError
@@ -70,7 +82,7 @@ func (err *H2Error) Unwrap() error {
 	return err.wrapped
 }
 
-func (code ErrorCode) Unknown() bool {
+func (code ErrorCode) IsUnknown() bool {
 	return code > HTTP11RequiredError
 }
 
@@ -107,4 +119,8 @@ func (code ErrorCode) String() string {
 	default:
 		return "unknown error"
 	}
+}
+
+func NewUnknownFrameError(typ FrameType) error {
+	return fmt.Errorf("%w: 0x%X", UnknownFrameErr, typ)
 }
