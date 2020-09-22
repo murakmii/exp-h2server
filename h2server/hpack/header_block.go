@@ -1,6 +1,7 @@
 package hpack
 
 import (
+	"errors"
 	"io"
 )
 
@@ -14,13 +15,16 @@ var (
 	_ io.Reader = (*peekReader)(nil)
 )
 
-func DecodeHeaderBlock(table *IndexTable, r *io.LimitedReader) (HeaderList, error) {
+func DecodeHeaderBlock(table *IndexTable, r io.Reader) (HeaderList, error) {
 	pkr := newPeekReader(r)
 	headerList := HeaderList{}
 
-	for r.N > 0 {
+	for {
 		peeked, err := pkr.Peek()
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
 			return nil, err
 		}
 

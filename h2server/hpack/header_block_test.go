@@ -3,7 +3,6 @@ package hpack
 import (
 	"bytes"
 	"errors"
-	"io"
 	"reflect"
 	"testing"
 )
@@ -114,8 +113,7 @@ func TestDecodeHeaderBlockWithSampleInRFC(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			table := NewIndexTable(4096)
 			for i, input := range tt.in {
-				r := io.LimitReader(bytes.NewReader(input), int64(len(input)))
-				got, err := DecodeHeaderBlock(table, r.(*io.LimitedReader))
+				got, err := DecodeHeaderBlock(table, bytes.NewReader(input))
 				if !errors.Is(err, tt.want.errors[i]) {
 					t.Errorf("[%d] DecodeHeaderBlock() return error = %v, want = %v", i, err, tt.want.errors[i])
 					return
